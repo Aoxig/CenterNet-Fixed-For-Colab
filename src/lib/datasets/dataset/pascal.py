@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import pycocotools.coco as coco
+from pycocotools.cocoeval import COCOeval
 import numpy as np
 import torch
 import json
@@ -78,5 +79,10 @@ class PascalVOC(data.Dataset):
     # detections  = self.convert_eval_format(results)
     # json.dump(detections, open(result_json, "w"))
     self.save_results(results, save_dir)
-    os.system('python tools/reval.py ' + \
-              '{}/results.json'.format(save_dir))
+    # os.system('python tools/reval.py ' + \
+    #           '{}/results.json'.format(save_dir))
+    coco_dets = self.coco.loadRes('{}/results.json'.format(save_dir))
+    coco_eval = COCOeval(self.coco, coco_dets, "bbox")
+    coco_eval.evaluate()
+    coco_eval.accumulate()
+    coco_eval.summarize()
