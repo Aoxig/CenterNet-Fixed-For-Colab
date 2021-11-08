@@ -55,16 +55,40 @@ class PascalVOC(data.Dataset):
   def _to_float(self, x):
     return float("{:.2f}".format(x))
 
+  # def convert_eval_format(self, all_bboxes):
+  #   detections = [[[] for __ in range(self.num_samples)] \
+  #                 for _ in range(self.num_classes + 1)]
+  #   for i in range(self.num_samples):
+  #     img_id = self.images[i]
+  #     for j in range(1, self.num_classes + 1):
+  #       if isinstance(all_bboxes[img_id][j], np.ndarray):
+  #         detections[j][i] = all_bboxes[img_id][j].tolist()
+  #       else:
+  #         detections[j][i] = all_bboxes[img_id][j]
+  #   return detections
+
   def convert_eval_format(self, all_bboxes):
-    detections = [[[] for __ in range(self.num_samples)] \
-                  for _ in range(self.num_classes + 1)]
-    for i in range(self.num_samples):
-      img_id = self.images[i]
-      for j in range(1, self.num_classes + 1):
-        if isinstance(all_bboxes[img_id][j], np.ndarray):
-          detections[j][i] = all_bboxes[img_id][j].tolist()
-        else:
-          detections[j][i] = all_bboxes[img_id][j]
+    # import pdb; pdb.set_trace()
+    detections = []
+    for image_id in all_bboxes:
+      for cls_ind in all_bboxes[image_id]:
+        category_id = self._valid_ids[cls_ind - 1]
+        for bbox in all_bboxes[image_id][cls_ind]:
+          bbox[2] -= bbox[0]
+          bbox[3] -= bbox[1]
+          score = bbox[4]
+          bbox_out  = list(map(self._to_float, bbox[0:4]))
+
+          detection = {
+              "image_id": int(image_id),
+              "category_id": int(category_id),
+              "bbox": bbox_out,
+              "score": float("{:.2f}".format(score))
+          }
+          if len(bbox) > 5:
+              extreme_points = list(map(self._to_float, bbox[5:13]))
+              detection["extreme_points"] = extreme_points
+          detections.append(detection)
     return detections
 
   def __len__(self):
