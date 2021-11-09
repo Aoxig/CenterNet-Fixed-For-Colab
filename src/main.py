@@ -2,17 +2,20 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import _init_paths
-
 import os
+
+from config import cfg
+from config import update_config
 
 import torch
 import torch.utils.data
-from opts import opts
-from models.model import create_model, load_model, save_model
-from models.data_parallel import DataParallel
-from logger import Logger
+from config import cfg
 from datasets.dataset_factory import get_dataset
+from fp16_utils.fp16_optimizer import FP16_Optimizer
+from fp16_utils.fp16util import network_to_half
+from logger import Logger
+from models.model import create_model, load_model, save_model
+from opts import opts
 from trains.train_factory import train_factory
 
 
@@ -31,6 +34,18 @@ def main(opt):
   print('Creating model...')
   model = create_model(opt.arch, opt.heads, opt.head_conv)
   optimizer = torch.optim.Adam(model.parameters(), opt.lr)
+
+  #hrnet + 混合精度运算
+  if opt.arch == 'hrnet' :
+    update_config(cfg, opt)
+    torch.backends.cudnn.enabled = True
+    model = network_to_half(model)
+    optimizer = FP16_Optimizer(
+      optimizer,
+      static_loss_scale=cfg.FP16.STATIC_LOSS_SCALE,
+      dynamic_loss_scale=cfg.FP16.DYNAMIC_LOSS_SCALE
+    )
+
   start_epoch = 0
   if opt.load_model != '':
     model, optimizer, start_epoch = load_model(

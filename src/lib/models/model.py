@@ -12,6 +12,7 @@ from .networks.dlav0 import get_pose_net as get_dlav0
 from .networks.pose_dla_dcn import get_pose_net as get_dla_dcn
 from .networks.resnet_dcn import get_pose_net as get_pose_net_dcn
 from .networks.large_hourglass import get_large_hourglass_net
+from .networks.pose_higher_hrnet import get_pose_net as get_hr_net
 
 _model_factory = {
   'res': get_pose_net, # default Resnet with deconv
@@ -19,14 +20,20 @@ _model_factory = {
   'dla': get_dla_dcn,
   'resdcn': get_pose_net_dcn,
   'hourglass': get_large_hourglass_net,
+  'hr': get_hr_net
 }
 
-def create_model(arch, heads, head_conv):
+def create_model(arch, heads, head_conv, *args):
   num_layers = int(arch[arch.find('_') + 1:]) if '_' in arch else 0
   arch = arch[:arch.find('_')] if '_' in arch else arch
   get_model = _model_factory[arch]
-  model = get_model(num_layers=num_layers, heads=heads, head_conv=head_conv)
+  if arch == 'hr' :
+    model = get_model(args[0])
+  else:
+    model = get_model(num_layers=num_layers, heads=heads, head_conv=head_conv)
   return model
+
+
 
 def load_model(model, model_path, optimizer=None, resume=False, 
                lr=None, lr_step=None):
