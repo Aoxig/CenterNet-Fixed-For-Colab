@@ -34,18 +34,16 @@ def main(opt):
   opt.device = torch.device('cuda' if opt.gpus[0] >= 0 else 'cpu')
   
   print('Creating model...')
-  if opt.arch == 'hr' :
+  if opt.arch == 'hrnet' :
     update_config(cfg, opt)
   model = create_model(opt.arch, opt.heads, opt.head_conv, cfg)
   optimizer = torch.optim.Adam(model.parameters(), opt.lr)
 
   #hrnet + 混合精度运算
-  if opt.arch == 'hr' :
+  if opt.arch == 'hrnet' :
     update_config(cfg, opt)
     torch.backends.cudnn.enabled = True
     model = network_to_half(model)
-    torch.cuda.set_device(opt.gpu)
-    model = model.cuda(opt.gpu)
     optimizer = FP16_Optimizer(
       optimizer,
       static_loss_scale=cfg.FP16.STATIC_LOSS_SCALE,
