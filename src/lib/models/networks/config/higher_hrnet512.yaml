@@ -56,6 +56,7 @@ MODEL:
       NUM_CHANNELS:
       - 32
       - 64
+      - 64
       FUSE_METHOD: SUM
     STAGE3:
       NUM_MODULES: 4
