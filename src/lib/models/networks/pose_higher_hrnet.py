@@ -561,8 +561,8 @@ class PoseHigherResolutionNet(nn.Module):
             self.load_state_dict(need_init_state_dict, strict=False)
 
 
-def get_pose_net(cfg, **kwargs):
-    model = PoseHigherResolutionNet(cfg, **kwargs)
+def get_pose_net(heads, cfg, **kwargs):
+    model = PoseHigherResolutionNet(heads, cfg, **kwargs)
 
     if cfg.MODEL.INIT_WEIGHTS:
         model.init_weights(cfg.MODEL.PRETRAINED, verbose=cfg.VERBOSE)

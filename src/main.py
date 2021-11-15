@@ -43,8 +43,8 @@ def main(opt):
   if opt.arch == 'hr' :
     update_config(cfg, opt)
     torch.backends.cudnn.enabled = True
-    torch.cuda.set_device(opt.gpu)
-    model = model.cuda(opt.gpu)
+    torch.cuda.set_device(opt.gpus[0])
+    model = model.cuda(opt.gpus[0])
     model = network_to_half(model)
     optimizer = FP16_Optimizer(
       optimizer,

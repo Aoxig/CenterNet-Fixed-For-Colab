@@ -28,7 +28,7 @@ def create_model(arch, heads, head_conv, *args):
   arch = arch[:arch.find('_')] if '_' in arch else arch
   get_model = _model_factory[arch]
   if arch == 'hr' :
-    model = get_model(args[0])
+    model = get_model(heads = heads, cfg = args[0])
   else:
     model = get_model(num_layers=num_layers, heads=heads, head_conv=head_conv)
   return model
