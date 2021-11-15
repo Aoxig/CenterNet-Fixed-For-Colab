@@ -289,7 +289,7 @@ resnet_spec = {18: (ECABasicBlock, [2, 2, 2, 2]),
                152: (ECABottleneck, [3, 8, 36, 3])}
 
 
-def get_pose_net(num_layers, heads, head_conv=256):
+def get_res_eca_net(num_layers, heads, head_conv=256):
   block_class, layers = resnet_spec[num_layers]
 
   model = PoseResNet(block_class, layers, heads, head_conv=head_conv)
