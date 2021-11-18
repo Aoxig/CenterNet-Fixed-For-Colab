@@ -150,7 +150,7 @@ class PoseResNet(nn.Module):
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
         self.avgpool = nn.AvgPool2d(7, stride=1)
-        self.fc = nn.Linear(512 * block.expansion, num_classes = 20)
+        self.fc = nn.Linear(512 * block.expansion, 20)
 
         # used for deconv layers
         self.deconv_layers = self._make_deconv_layer(
@@ -262,6 +262,10 @@ class PoseResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
 
         x = self.deconv_layers(x)
         ret = {}

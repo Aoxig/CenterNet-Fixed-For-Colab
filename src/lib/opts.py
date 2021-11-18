@@ -71,7 +71,7 @@ class opts(object):
                              help='output stride. Currently only supports 4.')
     self.parser.add_argument('--cfg',
                         help='experiment configure file name',
-                        required=True,
+                        required=False,
                         type=str)
 
     # input
@@ -96,7 +96,7 @@ class opts(object):
                              help='batch size on the master gpu.')
     self.parser.add_argument('--num_iters', type=int, default=-1,
                              help='default: #samples / batch_size.')
-    self.parser.add_argument('--val_intervals', type=int, default=5,
+    self.parser.add_argument('--val_intervals', type=int, default=10,
                              help='number of epochs to run validation.')
     self.parser.add_argument('--trainval', action='store_true',
                              help='include validation in training and '
@@ -163,7 +163,7 @@ class opts(object):
                              help='loss weight for keypoint heatmaps.')
     self.parser.add_argument('--off_weight', type=float, default=1,
                              help='loss weight for keypoint local offsets.')
-    self.parser.add_argument('--wh_weight', type=float, default=0.1,
+    self.parser.add_argument('--wh_weight', type=float, default=0.5,
                              help='loss weight for bounding box size.')
     # multi_pose
     self.parser.add_argument('--hp_weight', type=float, default=1,
