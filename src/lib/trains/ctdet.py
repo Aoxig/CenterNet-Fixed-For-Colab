@@ -9,6 +9,7 @@ from models.losses import FocalLoss
 from models.losses import RegL1Loss, RegLoss, NormRegL1Loss, RegWeightedL1Loss
 from models.decode import ctdet_decode
 from models.utils import _sigmoid
+from models.utils import _transpose_and_gather_feat
 from utils.debugger import Debugger
 from utils.post_process import ctdet_post_process
 from utils.oracle_utils import gen_oracle_map
@@ -48,11 +49,12 @@ class CtdetLoss(torch.nn.Module):
 
       hm_loss += self.crit(output['hm'], batch['hm']) / opt.num_stacks
       if opt.wh_weight > 0:
+        w_h_ = _transpose_and_gather_feat(output['wh'], batch['ind'])
+        scale = 2 - w_h_[..., 0:1] * w_h_[..., 0:1]
+        print("--------------------")
+        print("scale =",scale)
         if opt.dense_wh:
           mask_weight = batch['dense_wh_mask'].sum() + 1e-4
-          print('--------------------')
-          print(output['wh'])
-          scale = 2 - (output['wh'][0] - output['wh'][1]) * (output['wh'][2] - output['wh'][3]);
           wh_loss += (
             self.crit_wh(output['wh'] * batch['dense_wh_mask'],
             batch['dense_wh'] * batch['dense_wh_mask']) / 
