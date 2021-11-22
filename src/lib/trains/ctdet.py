@@ -6,7 +6,7 @@ import torch
 import numpy as np
 
 from models.losses import FocalLoss
-from models.losses import RegL1Loss, RegLoss, NormRegL1Loss, RegWeightedL1Loss
+from models.losses import RegL1Loss, RegLoss, NormRegL1Loss, RegWeightedL1Loss, SigmoidDRLoss
 from models.decode import ctdet_decode
 from models.utils import _sigmoid
 from models.utils import _transpose_and_gather_feat
@@ -18,7 +18,8 @@ from .base_trainer import BaseTrainer
 class CtdetLoss(torch.nn.Module):
   def __init__(self, opt):
     super(CtdetLoss, self).__init__()
-    self.crit = torch.nn.MSELoss() if opt.mse_loss else FocalLoss()
+    #self.crit = torch.nn.MSELoss() if opt.mse_loss else FocalLoss()
+    self.crit = SigmoidDRLoss()
     self.crit_reg = RegL1Loss() if opt.reg_loss == 'l1' else \
               RegLoss() if opt.reg_loss == 'sl1' else None
     self.crit_wh = torch.nn.L1Loss(reduction='sum') if opt.dense_wh else \
@@ -49,8 +50,6 @@ class CtdetLoss(torch.nn.Module):
 
       hm_loss += self.crit(output['hm'], batch['hm']) / opt.num_stacks
       if opt.wh_weight > 0:
-        w_h_ = _transpose_and_gather_feat(output['wh'], batch['ind'])
-        scale = 2 - w_h_[..., 0:1] * w_h_[..., 0:1]
         if opt.dense_wh:
           mask_weight = batch['dense_wh_mask'].sum() + 1e-4
           wh_loss += (

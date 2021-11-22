@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 from .utils import _transpose_and_gather_feat
 import torch.nn.functional as F
+import math
 
 
 def _slow_neg_loss(pred, gt):
@@ -235,3 +236,30 @@ def compute_rot_loss(output, target_bin, target_res, mask):
           valid_output2[:, 7], torch.cos(valid_target_res2[:, 1]))
         loss_res += loss_sin2 + loss_cos2
     return loss_bin1 + loss_bin2 + loss_res
+
+class SigmoidDRLoss(nn.Module):
+    def __init__(self, pos_lambda=1, neg_lambda=0.1/math.log(3.5), L=6., tau=4.):
+        super(SigmoidDRLoss, self).__init__()
+        self.margin = 0.5
+        self.pos_lambda = pos_lambda
+        self.neg_lambda = neg_lambda
+        self.L = L
+        self.tau = tau
+
+    def forward(self, pred, gt):
+        num_classes = 20  # TODO 换数据集要改
+        dtype = gt.dtype
+        device = gt.device
+        pos_inds = gt.eq(1).float()
+        neg_inds = gt.lt(1).float()
+        pos_pred = pred[pos_inds]
+        neg_pred = pred[neg_inds]
+        neg_q = F.softmax(pos_pred/self.neg_lambda, dim=0)
+        neg_dist = torch.sum(neg_q * neg_pred)
+        if pos_pred.numel() > 0:
+            pos_q = F.softmax(-pos_pred/self.pos_lambda, dim=0)
+            pos_dist = torch.sum(pos_q * pos_pred)
+            loss = self.tau*torch.log(1.+torch.exp(self.L*(neg_dist - pos_dist+self.margin)))/self.L
+        else:
+            loss = self.tau*torch.log(1.+torch.exp(self.L*(neg_dist - 1. + self.margin)))/self.L
+        return loss
