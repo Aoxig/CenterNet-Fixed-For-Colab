@@ -247,14 +247,11 @@ class SigmoidDRLoss(nn.Module):
         self.tau = tau
 
     def forward(self, pred, gt):
-        num_classes = 20  # TODO 换数据集要改
-        dtype = gt.dtype
-        device = gt.device
-        pos_inds = gt.eq(1).float()
-        neg_inds = gt.lt(1).float()
+        pos_inds = gt.eq(1)
+        neg_inds = gt.lt(1)
         pos_pred = pred[pos_inds]
         neg_pred = pred[neg_inds]
-        neg_q = F.softmax(pos_pred/self.neg_lambda, dim=0)
+        neg_q = F.softmax(neg_pred/self.neg_lambda, dim=0)
         neg_dist = torch.sum(neg_q * neg_pred)
         if pos_pred.numel() > 0:
             pos_q = F.softmax(-pos_pred/self.pos_lambda, dim=0)

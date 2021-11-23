@@ -45,7 +45,7 @@ class CTDetDataset(data.Dataset):
     else:
       s = max(img.shape[0], img.shape[1]) * 1.0
       input_h, input_w = self.opt.input_h, self.opt.input_w
-    
+
     flipped = False
     if self.split == 'train':
       if not self.opt.not_rand_crop:
@@ -60,16 +60,35 @@ class CTDetDataset(data.Dataset):
         c[0] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
         c[1] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
         s = s * np.clip(np.random.randn()*sf + 1, 1 - sf, 1 + sf)
-      
+      # 先扩充小目标
+      small_object_list = list()
+      for k in range(num_objs):
+        ann = anns[k]
+        bbox = self._coco_box_to_bbox(ann['bbox'])
+        h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+        if self.opt.small and self.issmallobject(h, w):
+          small_object_list.append(k)
+
+      for k in range(small_object_list):
+        ann = anns[k]
+        bbox = self._coco_box_to_bbox(ann['bbox'])
+        h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+        new_ann = self.create_copy_ann(h, w, ann, anns)
+        if new_ann != None:
+          img = self.add_patch_in_img(new_ann, ann, img)
+          anns.append(new_ann)
+          num_objs = num_objs + 1
+
       if np.random.random() < self.opt.flip:
         flipped = True
         img = img[:, ::-1, :]
         c[0] =  width - c[0] - 1
-        
+
+
 
     trans_input = get_affine_transform(
       c, s, 0, [input_w, input_h])
-    inp = cv2.warpAffine(img, trans_input, 
+    inp = cv2.warpAffine(img, trans_input,
                          (input_w, input_h),
                          flags=cv2.INTER_LINEAR)
     inp = (inp.astype(np.float32) / 255.)
@@ -91,7 +110,7 @@ class CTDetDataset(data.Dataset):
     reg_mask = np.zeros((self.max_objs), dtype=np.uint8)
     cat_spec_wh = np.zeros((self.max_objs, num_classes * 2), dtype=np.float32)
     cat_spec_mask = np.zeros((self.max_objs, num_classes * 2), dtype=np.uint8)
-    
+
     draw_gaussian = draw_msra_gaussian if self.opt.mse_loss else \
                     draw_umich_gaussian
 
@@ -123,9 +142,9 @@ class CTDetDataset(data.Dataset):
         cat_spec_mask[k, cls_id * 2: cls_id * 2 + 2] = 1
         if self.opt.dense_wh:
           draw_dense_reg(dense_wh, hm.max(axis=0), ct_int, wh[k], radius)
-        gt_det.append([ct[0] - w / 2, ct[1] - h / 2, 
+        gt_det.append([ct[0] - w / 2, ct[1] - h / 2,
                        ct[0] + w / 2, ct[1] + h / 2, 1, cls_id])
-    
+
     ret = {'input': inp, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh}
     if self.opt.dense_wh:
       hm_a = hm.max(axis=0, keepdims=True)
@@ -143,3 +162,47 @@ class CTDetDataset(data.Dataset):
       meta = {'c': c, 's': s, 'gt_det': gt_det, 'img_id': img_id}
       ret['meta'] = meta
     return ret
+
+  def issmallobject(self, h, w):
+    if h * w <= 64 * 64:
+      return True
+    else:
+      return False
+
+  def create_copy_ann(self, h, w, ann, anns):
+    bbox = self._coco_box_to_bbox(ann['bbox']).astype(np.int)
+    ann_h, ann_w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+    #TODO 尝试次数设置的20，可能会增加训练时间
+    for i in range(20):
+      random_x, random_y = np.random.randint(int(ann_w / 2), int(w - ann_w / 2)), \
+                           np.random.randint(int(ann_h / 2), int(h - ann_h / 2))
+      xmin, ymin = random_x - ann_w / 2, random_y - ann_h / 2
+      xmax, ymax = xmin + ann_w, ymin + ann_h
+      if xmin < 0 or xmax > w or ymin < 0 or ymax > h:
+        continue
+      new_ann = np.array([xmin, ymin, xmax - xmin, ymax - ymin], dtype=np.float32)
+
+      if self.overlap(new_ann, anns):
+        return new_ann
+    return None
+
+  def overlap(self, new_ann, anns):
+    if new_ann is None:
+      return False
+    bboxA = self._coco_box_to_bbox(new_ann['bbox']).astype(np.int)
+    for ann in anns:
+      bboxB = self._coco_box_to_bbox(ann['bbox']).astype(np.int)
+      left_max = max(bboxA[0], bboxB[0])
+      top_max = max(bboxA[1], bboxB[1])
+      right_min = min(bboxA[2], bboxB[2])
+      bottom_min = min(bboxA[3], bboxB[3])
+      inter = max(0, (right_min - left_max)) * max(0, (bottom_min - top_max))
+      if inter != 0:
+        return True
+    return False
+
+  def add_patch_in_img(self, new_ann, ann, img):
+    bbox = self._coco_box_to_bbox(ann['bbox']).astype(np.int)
+    bboxNew = self._coco_box_to_bbox(new_ann['bbox']).astype(np.int)
+    img[bboxNew[1]:bboxNew[3], bboxNew[0]:bboxNew[2], :] = img[bbox[1]:bbox[3], bbox[0]:bbox[2], :]
+    return img

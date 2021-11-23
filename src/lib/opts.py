@@ -138,6 +138,9 @@ class opts(object):
     self.parser.add_argument('--no_color_aug', action='store_true',
                              help='not use the color augmenation '
                                   'from CornerNet')
+    self.parser.add_argument('--small', action = 'store_true',
+                             help='small object augmentation.')
+
     # multi_pose
     self.parser.add_argument('--aug_rot', type=float, default=0, 
                              help='probability of applying '
