@@ -12,7 +12,7 @@ import time
 from progress.bar import Bar
 import torch
 
-from external.nms import soft_nms
+#from external.nms import soft_nms
 from opts import opts
 from logger import Logger
 from utils.utils import AverageMeter
@@ -116,7 +116,7 @@ def test(opt):
       Bar.suffix = Bar.suffix + '|{} {:.3f} '.format(t, avg_time_stats[t].avg)
     bar.next()
   bar.finish()
-  dataset.run_eval(results, opt.save_dir)
+  dataset.run_eval(soft_nms, opt.save_dir)
 
 if __name__ == '__main__':
   opt = opts().parse()
