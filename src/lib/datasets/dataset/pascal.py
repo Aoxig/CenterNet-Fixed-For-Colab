@@ -18,19 +18,19 @@ class PascalVOC(data.Dataset):
                    dtype=np.float32).reshape(1, 1, 3)
   std  = np.array([0.229, 0.224, 0.225],
                    dtype=np.float32).reshape(1, 1, 3)
-  
+
   def __init__(self, opt, split):
     super(PascalVOC, self).__init__()
     self.data_dir = os.path.join(opt.data_dir, 'voc')
     self.img_dir = os.path.join(self.data_dir, 'images')
     _ann_name = {'train': 'trainval0712', 'val': 'test2007'}
     self.annot_path = os.path.join(
-      self.data_dir, 'annotations', 
+      self.data_dir, 'annotations',
       'pascal_{}.json').format(_ann_name[split])
     self.max_objs = 50
     self.class_name = ['__background__', "aeroplane", "bicycle", "bird", "boat",
-     "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", 
-     "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", 
+     "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog",
+     "horse", "motorbike", "person", "pottedplant", "sheep", "sofa",
      "train", "tvmonitor"]
     self._valid_ids = np.arange(1, 21, dtype=np.int32)
     self.cat_ids = {v: i for i, v in enumerate(self._valid_ids)}
@@ -55,47 +55,47 @@ class PascalVOC(data.Dataset):
   def _to_float(self, x):
     return float("{:.2f}".format(x))
 
-  # def convert_eval_format(self, all_bboxes):
-  #   detections = [[[] for __ in range(self.num_samples)] \
-  #                 for _ in range(self.num_classes + 1)]
-  #   for i in range(self.num_samples):
-  #     img_id = self.images[i]
-  #     for j in range(1, self.num_classes + 1):
-  #       if isinstance(all_bboxes[img_id][j], np.ndarray):
-  #         detections[j][i] = all_bboxes[img_id][j].tolist()
-  #       else:
-  #         detections[j][i] = all_bboxes[img_id][j]
-  #   return detections
-
   def convert_eval_format(self, all_bboxes):
-    # import pdb; pdb.set_trace()
-    detections = []
-    for image_id in all_bboxes:
-      for cls_ind in all_bboxes[image_id]:
-        category_id = self._valid_ids[cls_ind - 1]
-        for bbox in all_bboxes[image_id][cls_ind]:
-          bbox[2] -= bbox[0]
-          bbox[3] -= bbox[1]
-          score = bbox[4]
-          bbox_out  = list(map(self._to_float, bbox[0:4]))
-
-          detection = {
-              "image_id": int(image_id),
-              "category_id": int(category_id),
-              "bbox": bbox_out,
-              "score": float("{:.2f}".format(score))
-          }
-          if len(bbox) > 5:
-              extreme_points = list(map(self._to_float, bbox[5:13]))
-              detection["extreme_points"] = extreme_points
-          detections.append(detection)
+    detections = [[[] for __ in range(self.num_samples)] \
+                  for _ in range(self.num_classes + 1)]
+    for i in range(self.num_samples):
+      img_id = self.images[i]
+      for j in range(1, self.num_classes + 1):
+        if isinstance(all_bboxes[img_id][j], np.ndarray):
+          detections[j][i] = all_bboxes[img_id][j].tolist()
+        else:
+          detections[j][i] = all_bboxes[img_id][j]
     return detections
+
+  # def convert_eval_format(self, all_bboxes):
+  #   # import pdb; pdb.set_trace()
+  #   detections = []
+  #   for image_id in all_bboxes:
+  #     for cls_ind in all_bboxes[image_id]:
+  #       category_id = self._valid_ids[cls_ind - 1]
+  #       for bbox in all_bboxes[image_id][cls_ind]:
+  #         bbox[2] -= bbox[0]
+  #         bbox[3] -= bbox[1]
+  #         score = bbox[4]
+  #         bbox_out  = list(map(self._to_float, bbox[0:4]))
+  #
+  #         detection = {
+  #             "image_id": int(image_id),
+  #             "category_id": int(category_id),
+  #             "bbox": bbox_out,
+  #             "score": float("{:.2f}".format(score))
+  #         }
+  #         if len(bbox) > 5:
+  #             extreme_points = list(map(self._to_float, bbox[5:13]))
+  #             detection["extreme_points"] = extreme_points
+  #         detections.append(detection)
+  #   return detections
 
   def __len__(self):
     return self.num_samples
 
   def save_results(self, results, save_dir):
-    json.dump(self.convert_eval_format(results), 
+    json.dump(self.convert_eval_format(results),
               open('{}/results.json'.format(save_dir), 'w'))
 
   def run_eval(self, results, save_dir):
@@ -103,10 +103,10 @@ class PascalVOC(data.Dataset):
     # detections  = self.convert_eval_format(results)
     # json.dump(detections, open(result_json, "w"))
     self.save_results(results, save_dir)
-    # os.system('python tools/reval.py ' + \
-    #           '{}/results.json'.format(save_dir))
-    coco_dets = self.coco.loadRes('{}/results.json'.format(save_dir))
-    coco_eval = COCOeval(self.coco, coco_dets, "bbox")
-    coco_eval.evaluate()
-    coco_eval.accumulate()
-    coco_eval.summarize()
+    os.system('python tools/reval.py ' + \
+              '{}/results.json'.format(save_dir))
+    # coco_dets = self.coco.loadRes('{}/results.json'.format(save_dir))
+    # coco_eval = COCOeval(self.coco, coco_dets, "bbox")
+    # coco_eval.evaluate()
+    # coco_eval.accumulate()
+    # coco_eval.summarize()

@@ -61,23 +61,24 @@ class CTDetDataset(data.Dataset):
         c[1] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
         s = s * np.clip(np.random.randn()*sf + 1, 1 - sf, 1 + sf)
       # 先扩充小目标
-      small_object_list = list()
-      for k in range(num_objs):
-        ann = anns[k]
-        bbox = self._coco_box_to_bbox(ann['bbox'])
-        h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
-        if self.opt.small and self.issmallobject(h, w):
-          small_object_list.append(k)
+      if self.opt.small:
+        small_object_list = list()
+        for k in range(num_objs):
+          ann = anns[k]
+          bbox = self._coco_box_to_bbox(ann['bbox'])
+          h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+          if self.issmallobject(h, w):
+            small_object_list.append(k)
 
-      for k in range(small_object_list):
-        ann = anns[k]
-        bbox = self._coco_box_to_bbox(ann['bbox'])
-        h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
-        new_ann = self.create_copy_ann(h, w, ann, anns)
-        if new_ann != None:
-          img = self.add_patch_in_img(new_ann, ann, img)
-          anns.append(new_ann)
-          num_objs = num_objs + 1
+        for k in small_object_list:
+          ann = anns[k]
+          bbox = self._coco_box_to_bbox(ann['bbox'])
+          h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+          new_ann = self.create_copy_ann(h, w, ann, anns)
+          if new_ann != None:
+            img = self.add_patch_in_img(new_ann, ann, img)
+            anns.append(new_ann)
+            num_objs = num_objs + 1
 
       if np.random.random() < self.opt.flip:
         flipped = True

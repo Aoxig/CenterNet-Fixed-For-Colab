@@ -140,6 +140,8 @@ class opts(object):
                                   'from CornerNet')
     self.parser.add_argument('--small', action = 'store_true',
                              help='small object augmentation.')
+    self.parser.add_argument('--dr_loss', action='store_true',
+                             help='use dr loss.')
 
     # multi_pose
     self.parser.add_argument('--aug_rot', type=float, default=0, 
