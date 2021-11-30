@@ -31,7 +31,9 @@ class opts(object):
                              help='resume an experiment. '
                                   'Reloaded the optimizer parameter and '
                                   'set load_model to model_last.pth '
-                                  'in the exp dir if load_model is empty.') 
+                                  'in the exp dir if load_model is empty.')
+    self.parser.add_argument('--dr_loss', action='store_true',
+                             help='use dr loss.')
 
     # system
     self.parser.add_argument('--gpus', default='0', 
@@ -96,7 +98,7 @@ class opts(object):
                              help='batch size on the master gpu.')
     self.parser.add_argument('--num_iters', type=int, default=-1,
                              help='default: #samples / batch_size.')
-    self.parser.add_argument('--val_intervals', type=int, default=10,
+    self.parser.add_argument('--val_intervals', type=int, default=20,
                              help='number of epochs to run validation.')
     self.parser.add_argument('--trainval', action='store_true',
                              help='include validation in training and '
@@ -140,8 +142,6 @@ class opts(object):
                                   'from CornerNet')
     self.parser.add_argument('--small', action = 'store_true',
                              help='small object augmentation.')
-    self.parser.add_argument('--dr_loss', action='store_true',
-                             help='use dr loss.')
 
     # multi_pose
     self.parser.add_argument('--aug_rot', type=float, default=0, 

@@ -66,15 +66,14 @@ class CTDetDataset(data.Dataset):
         for k in range(num_objs):
           ann = anns[k]
           bbox = self._coco_box_to_bbox(ann['bbox'])
-          h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
-          if self.issmallobject(h, w):
+          ann_h, ann_w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+          if self.issmallobject(ann_h, ann_w):
             small_object_list.append(k)
 
         for k in small_object_list:
           ann = anns[k]
           bbox = self._coco_box_to_bbox(ann['bbox'])
-          h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
-          new_ann = self.create_copy_ann(h, w, ann, anns)
+          new_ann = self.create_copy_ann(img.shape[0], img.shape[1], ann, anns)
           if new_ann != None:
             img = self.add_patch_in_img(new_ann, ann, img)
             anns.append(new_ann)
@@ -181,7 +180,8 @@ class CTDetDataset(data.Dataset):
       xmax, ymax = xmin + ann_w, ymin + ann_h
       if xmin < 0 or xmax > w or ymin < 0 or ymax > h:
         continue
-      new_ann = np.array([xmin, ymin, xmax - xmin, ymax - ymin], dtype=np.float32)
+      new_ann = ann
+      new_ann['bbox'] = np.array([xmin, ymin, xmax - xmin, ymax - ymin], dtype=np.int)
 
       if self.overlap(new_ann, anns):
         return new_ann
