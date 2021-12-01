@@ -72,7 +72,6 @@ class CTDetDataset(data.Dataset):
 
         for k in small_object_list:
           ann = anns[k]
-          bbox = self._coco_box_to_bbox(ann['bbox'])
           new_ann = self.create_copy_ann(img.shape[0], img.shape[1], ann, anns)
           if new_ann != None:
             img = self.add_patch_in_img(new_ann, ann, img)
