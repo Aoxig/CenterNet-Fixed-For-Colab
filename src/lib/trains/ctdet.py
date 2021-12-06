@@ -18,10 +18,7 @@ from .base_trainer import BaseTrainer
 class CtdetLoss(torch.nn.Module):
   def __init__(self, opt):
     super(CtdetLoss, self).__init__()
-    if opt.dr_loss :
-      self.crit = SigmoidDRLoss()
-    else:
-      self.crit = torch.nn.MSELoss() if opt.mse_loss else FocalLoss()
+    self.crit = torch.nn.MSELoss() if opt.mse_loss else FocalLoss()
     self.crit_reg = RegL1Loss() if opt.reg_loss == 'l1' else \
               RegLoss() if opt.reg_loss == 'sl1' else None
     self.crit_wh = torch.nn.L1Loss(reduction='sum') if opt.dense_wh else \

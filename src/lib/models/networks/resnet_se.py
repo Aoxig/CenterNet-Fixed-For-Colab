@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 from .DCNv2.dcn_v2 import DCN
 import torch.utils.model_zoo as model_zoo
-from senet.se_module import SELayer
+from .se_module import SELayer
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
