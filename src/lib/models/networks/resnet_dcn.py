@@ -219,6 +219,17 @@ class PoseResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
+    def build_shortcut(self, inplanes, planes, shortcut_cfg, kernel_size=3, padding=1):
+        assert len(inplanes) == len(planes) == len(shortcut_cfg)
+        shortcut_layers = []
+        for (inp, outp, layer_num) in zip(
+                inplanes, planes, shortcut_cfg):
+            assert layer_num > 0
+            layer = ShortcutConv2d(
+                inp, outp, [kernel_size] * layer_num, [padding] * layer_num)
+            shortcut_layers.append(layer)
+        return nn.Sequential(*shortcut_layers)
+
     def _get_deconv_cfg(self, deconv_kernel, index):
         if deconv_kernel == 4:
             padding = 1
@@ -270,94 +281,81 @@ class PoseResNet(nn.Module):
         return nn.Sequential(*layers)
 
 
-def _make_deconv_layer(self, num_layers, num_filters, num_kernels):
-    assert num_layers == len(num_filters), \
-        'ERROR: num_deconv_layers is different len(num_deconv_filters)'
-    assert num_layers == len(num_kernels), \
-        'ERROR: num_deconv_layers is different len(num_deconv_filters)'
+    def _make_deconv_layer(self, num_layers, num_filters, num_kernels):
+        assert num_layers == len(num_filters), \
+            'ERROR: num_deconv_layers is different len(num_deconv_filters)'
+        assert num_layers == len(num_kernels), \
+            'ERROR: num_deconv_layers is different len(num_deconv_filters)'
 
-    layers = []
-    for i in range(num_layers):
-        kernel, padding, output_padding = \
-            self._get_deconv_cfg(num_kernels[i], i)
+        layers = []
+        for i in range(num_layers):
+            kernel, padding, output_padding = \
+                self._get_deconv_cfg(num_kernels[i], i)
 
-        planes = num_filters[i]
-        fc = DCN(self.inplanes, planes,
-                 kernel_size=(3, 3), stride=1,
-                 padding=1, dilation=1, deformable_groups=1)
-        # fc = nn.Conv2d(self.inplanes, planes,
-        #         kernel_size=3, stride=1,
-        #         padding=1, dilation=1, bias=False)
-        # fill_fc_weights(fc)
-        up = nn.ConvTranspose2d(
-            in_channels=planes,
-            out_channels=planes,
-            kernel_size=kernel,
-            stride=2,
-            padding=padding,
-            output_padding=output_padding,
-            bias=self.deconv_with_bias)
-        fill_up_weights(up)
+            planes = num_filters[i]
+            fc = DCN(self.inplanes, planes,
+                     kernel_size=(3, 3), stride=1,
+                     padding=1, dilation=1, deformable_groups=1)
+            # fc = nn.Conv2d(self.inplanes, planes,
+            #         kernel_size=3, stride=1,
+            #         padding=1, dilation=1, bias=False)
+            # fill_fc_weights(fc)
+            up = nn.ConvTranspose2d(
+                in_channels=planes,
+                out_channels=planes,
+                kernel_size=kernel,
+                stride=2,
+                padding=padding,
+                output_padding=output_padding,
+                bias=self.deconv_with_bias)
+            fill_up_weights(up)
 
-        layers.append(fc)
-        layers.append(nn.BatchNorm2d(planes, momentum=BN_MOMENTUM))
-        layers.append(nn.ReLU(inplace=True))
-        layers.append(up)
-        layers.append(nn.BatchNorm2d(planes, momentum=BN_MOMENTUM))
-        layers.append(nn.ReLU(inplace=True))
-        self.inplanes = planes
+            layers.append(fc)
+            layers.append(nn.BatchNorm2d(planes, momentum=BN_MOMENTUM))
+            layers.append(nn.ReLU(inplace=True))
+            layers.append(up)
+            layers.append(nn.BatchNorm2d(planes, momentum=BN_MOMENTUM))
+            layers.append(nn.ReLU(inplace=True))
+            self.inplanes = planes
 
-    return nn.Sequential(*layers)
+        return nn.Sequential(*layers)
 
+    def forward(self, x):
+        feats = x
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
 
-def build_shortcut(self, inplanes, planes, shortcut_cfg, kernel_size=3, padding=1):
-    assert len(inplanes) == len(planes) == len(shortcut_cfg)
-    shortcut_layers = []
-    for (inp, outp, layer_num) in zip(
-            inplanes, planes, shortcut_cfg):
-        assert layer_num > 0
-        layer = ShortcutConv2d(
-            inp, outp, [kernel_size] * layer_num, [padding] * layer_num)
-        shortcut_layers.append(layer)
-    return nn.Sequential(*shortcut_layers)
+        y1 = self.layer1(x)
+        y2 = self.layer2(y1)
+        y3 = self.layer3(y2)
+        y4 = self.layer4(y3)
 
-
-def forward(self, x):
-    feats = x
-    x = self.conv1(x)
-    x = self.bn1(x)
-    x = self.relu(x)
-    x = self.maxpool(x)
-
-    y1 = self.layer1(x)
-    y2 = self.layer2(y1)
-    y3 = self.layer3(y2)
-    y4 = self.layer4(y3)
-
-    feats = [y1, y2, y3, y4]
-    #x = self.deconv_layers(x)
-    for i, upsample_layer in enumerate(self.deconv_layers):
-        y4 = upsample_layer(y4)
-        if i < len(self.shortcut_layers):
-            shortcut = self.shortcut_layers[i](feats[-i - 2])
-            y4 = y4 + shortcut
-    ret = {}
-    for head in self.heads:
-        ret[head] = self.__getattr__(head)(y4)
-    return [ret]
+        feats = [y1, y2, y3, y4]
+        #x = self.deconv_layers(x)
+        for i, upsample_layer in enumerate(self.deconv_layers):
+            y4 = upsample_layer(y4)
+            if i < len(self.shortcut_layers):
+                shortcut = self.shortcut_layers[i](feats[-i - 2])
+                y4 = y4 + shortcut
+        ret = {}
+        for head in self.heads:
+            ret[head] = self.__getattr__(head)(y4)
+        return [ret]
 
 
-def init_weights(self, num_layers):
-    if 1:
-        url = model_urls['resnet{}'.format(num_layers)]
-        pretrained_state_dict = model_zoo.load_url(url)
-        print('=> loading pretrained model {}'.format(url))
-        self.load_state_dict(pretrained_state_dict, strict=False)
-        print('=> init deconv weights from normal distribution')
-        for name, m in self.deconv_layers.named_modules():
-            if isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+    def init_weights(self, num_layers):
+        if 1:
+            url = model_urls['resnet{}'.format(num_layers)]
+            pretrained_state_dict = model_zoo.load_url(url)
+            print('=> loading pretrained model {}'.format(url))
+            self.load_state_dict(pretrained_state_dict, strict=False)
+            print('=> init deconv weights from normal distribution')
+            for name, m in self.deconv_layers.named_modules():
+                if isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
 
 
 resnet_spec = {18: (BasicBlock, [2, 2, 2, 2]),
