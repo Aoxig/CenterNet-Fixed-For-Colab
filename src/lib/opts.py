@@ -38,7 +38,7 @@ class opts(object):
     # system
     self.parser.add_argument('--gpus', default='0', 
                              help='-1 for CPU, use comma for multiple gpus')
-    self.parser.add_argument('--num_workers', type=int, default=4,
+    self.parser.add_argument('--num_workers', type=int, default=16,
                              help='dataloader threads. 0 for single-thread.')
     self.parser.add_argument('--not_cuda_benchmark', action='store_true',
                              help='disable when the input size is not fixed.')
@@ -64,7 +64,7 @@ class opts(object):
                              help='model architecture. Currently tested'
                                   'res_18 | res_101 | resdcn_18 | resdcn_101 |'
                                   'dlav0_34 | dla_34 | hourglass | hrnet')
-    self.parser.add_argument('--head_conv', type=int, default=-1,
+    self.parser.add_argument('--head_conv', type=int, default=64,
                              help='conv layer channels for output head'
                                   '0 for no conv layer'
                                   '-1 for default setting: '
@@ -77,7 +77,7 @@ class opts(object):
                         type=str)
 
     # input
-    self.parser.add_argument('--input_res', type=int, default=-1, 
+    self.parser.add_argument('--input_res', type=int, default=512,
                              help='input height and width. -1 for default from '
                              'dataset. Will be overriden by input_h | input_w')
     self.parser.add_argument('--input_h', type=int, default=-1, 
@@ -86,13 +86,13 @@ class opts(object):
                              help='input width. -1 for default from dataset.')
     
     # train
-    self.parser.add_argument('--lr', type=float, default=1.25e-4, 
-                             help='learning rate for batch size 32.')
+    self.parser.add_argument('--lr', type=float, default=6.25e-5,
+                             help='learning rate for batch size 64.')
     self.parser.add_argument('--lr_step', type=str, default='90,120',
                              help='drop learning rate by 10.')
     self.parser.add_argument('--num_epochs', type=int, default=140,
                              help='total training epochs.')
-    self.parser.add_argument('--batch_size', type=int, default=32,
+    self.parser.add_argument('--batch_size', type=int, default=64,
                              help='batch size')
     self.parser.add_argument('--master_batch_size', type=int, default=-1,
                              help='batch size on the master gpu.')
