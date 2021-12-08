@@ -10,7 +10,7 @@ import os
 from .networks.msra_resnet import get_pose_net
 from .networks.dlav0 import get_pose_net as get_dlav0
 from .networks.pose_dla_dcn import get_pose_net as get_dla_dcn
-from .networks.resnet_dcn import get_pose_net as get_pose_net_dcn
+from .networks.resnet_dcn_spp_short import get_pose_net as get_pose_net_dcn
 from .networks.large_hourglass import get_large_hourglass_net
 from .networks.pose_higher_hrnet import get_pose_net as get_hr_net
 from .networks.resnet_eca import get_res_eca_net as get_res_eca_net
