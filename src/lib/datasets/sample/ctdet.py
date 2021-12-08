@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import torch.utils.data as data
 import numpy as np
+import random
 import torch
 import json
 import cv2
@@ -27,14 +28,10 @@ class CTDetDataset(data.Dataset):
     return border // i
 
   def __getitem__(self, index):
-    img_id = self.images[index]
-    file_name = self.coco.loadImgs(ids=[img_id])[0]['file_name']
-    img_path = os.path.join(self.img_dir, file_name)
-    ann_ids = self.coco.getAnnIds(imgIds=[img_id])
-    anns = self.coco.loadAnns(ids=ann_ids)
-    num_objs = min(len(anns), self.max_objs)
-
-    img = cv2.imread(img_path)
+    if self.opt.mosaic and random.randint(2):
+      img, labels, bboxes = self.load_mosaic(self, index)
+    else:
+      img, labels, bboxes = self.load_image(self, index)
 
     height, width = img.shape[0], img.shape[1]
     c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
@@ -60,30 +57,28 @@ class CTDetDataset(data.Dataset):
         c[0] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
         c[1] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
         s = s * np.clip(np.random.randn()*sf + 1, 1 - sf, 1 + sf)
-      # 先扩充小目标
-      if self.opt.small:
-        small_object_list = list()
-        for k in range(num_objs):
-          ann = anns[k]
-          bbox = self._coco_box_to_bbox(ann['bbox'])
-          ann_h, ann_w = bbox[3] - bbox[1], bbox[2] - bbox[0]
-          if self.issmallobject(ann_h, ann_w):
-            small_object_list.append(k)
-
-        for k in small_object_list:
-          ann = anns[k]
-          new_ann = self.create_copy_ann(img.shape[0], img.shape[1], ann, anns)
-          if new_ann != None:
-            img = self.add_patch_in_img(new_ann, ann, img)
-            anns.append(new_ann)
-            num_objs = num_objs + 1
+      # # 先扩充小目标
+      # if self.opt.small:
+      #   small_object_list = list()
+      #   for k in range(num_objs):
+      #     ann = anns[k]
+      #     bbox = self._coco_box_to_bbox(ann['bbox'])
+      #     ann_h, ann_w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+      #     if self.issmallobject(ann_h, ann_w):
+      #       small_object_list.append(k)
+      #
+      #   for k in small_object_list:
+      #     ann = anns[k]
+      #     new_ann = self.create_copy_ann(img.shape[0], img.shape[1], ann, anns)
+      #     if new_ann != None:
+      #       img = self.add_patch_in_img(new_ann, ann, img)
+      #       anns.append(new_ann)
+      #       num_objs = num_objs + 1
 
       if np.random.random() < self.opt.flip:
         flipped = True
         img = img[:, ::-1, :]
         c[0] =  width - c[0] - 1
-
-
 
     trans_input = get_affine_transform(
       c, s, 0, [input_w, input_h])
@@ -114,10 +109,7 @@ class CTDetDataset(data.Dataset):
                     draw_umich_gaussian
 
     gt_det = []
-    for k in range(num_objs):
-      ann = anns[k]
-      bbox = self._coco_box_to_bbox(ann['bbox'])
-      cls_id = int(self.cat_ids[ann['category_id']])
+    for k, (bbox, cls_id) in enumerate(zip(bboxes, labels)):
       if flipped:
         bbox[[0, 2]] = width - bbox[[2, 0]] - 1
       bbox[:2] = affine_transform(bbox[:2], trans_output)
@@ -206,3 +198,74 @@ class CTDetDataset(data.Dataset):
     bboxNew = self._coco_box_to_bbox(new_ann['bbox']).astype(np.int)
     img[bboxNew[1]:bboxNew[3], bboxNew[0]:bboxNew[2], :] = img[bbox[1]:bbox[3], bbox[0]:bbox[2], :]
     return img
+
+  def load_image(self, index):
+    img_id = self.images[index]
+    file_name = self.coco.loadImgs(ids=[img_id])[0]['file_name']
+    img_path = os.path.join(self.img_dir, file_name)
+    ann_ids = self.coco.getAnnIds(imgIds=[img_id])
+    anns = self.coco.loadAnns(ids=ann_ids)
+    labels = np.array([self.cat_ids[anno['category_id']] for anno in anns])
+    bboxes = np.array([anno['bbox'] for anno in anns], dtype=np.float32)
+    if len(bboxes) == 0:
+      bboxes = np.array([[0., 0., 0., 0.]], dtype=np.float32)
+      labels = np.array([[0]])
+    bboxes[:, 2:] += bboxes[:, :2]  # xywh to xyxy
+    img = cv2.imread(img_path)
+    return img, labels, bboxes
+
+  def load_mosaic(self, index):
+    s = 512
+    labels_result = []
+    bboxes_result = []
+    xc, yc = [int(random.uniform(s * 0.5, s * 1.5)) for _ in range(2)]  # mosaic center x, y
+    indices = [index] + [random.randint(0, len(self.labels) - 1) for _ in range(3)]  # 3 additional image indices
+    #遍历进行拼接
+    for i, index in enumerate(indices):
+      img, labels, bboxes = self.load_image(self, index)
+      h, w = img.shape[0], img.shape[1]
+      if i == 0:  # top left
+        # 创建马赛克图像
+        img_result = np.full((s * 2, s * 2, img.shape[2]), 114, dtype=np.uint8)  # base image with 4 tiles
+        # 计算马赛克图像中的坐标信息(将图像填充到马赛克图像中)
+        x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc  # xmin, ymin, xmax, ymax (large image)
+        # 计算截取的图像区域信息(以xc,yc为第一张图像的右下角坐标填充到马赛克图像中，丢弃越界的区域)
+        x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h  # xmin, ymin, xmax, ymax (small image)
+      elif i == 1:  # top right
+        # 计算马赛克图像中的坐标信息(将图像填充到马赛克图像中)
+        x1a, y1a, x2a, y2a = xc, max(yc - h, 0), min(xc + w, s * 2), yc
+        # 计算截取的图像区域信息(以xc,yc为第二张图像的左下角坐标填充到马赛克图像中，丢弃越界的区域)
+        x1b, y1b, x2b, y2b = 0, h - (y2a - y1a), min(w, x2a - x1a), h
+      elif i == 2:  # bottom left
+        # 计算马赛克图像中的坐标信息(将图像填充到马赛克图像中)
+        x1a, y1a, x2a, y2a = max(xc - w, 0), yc, xc, min(s * 2, yc + h)
+        # 计算截取的图像区域信息(以xc,yc为第三张图像的右上角坐标填充到马赛克图像中，丢弃越界的区域)
+        x1b, y1b, x2b, y2b = w - (x2a - x1a), 0, max(xc, w), min(y2a - y1a, h)
+      elif i == 3:  # bottom right
+        # 计算马赛克图像中的坐标信息(将图像填充到马赛克图像中)
+        x1a, y1a, x2a, y2a = xc, yc, min(xc + w, s * 2), min(s * 2, yc + h)
+        # 计算截取的图像区域信息(以xc,yc为第四张图像的左上角坐标填充到马赛克图像中，丢弃越界的区域)
+        x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
+
+      #填充到mosaic中去
+      img_result[y1a:y2a, x1a:x2a] = img[y1b:y2b, x1b:x2b]
+      # 计算pad(图像边界与马赛克边界的距离，越界的情况为负值)
+      padw = x1a - x1b
+      padh = y1a - y1b
+
+      # Labels 获取对应拼接图像的labels信息
+      # [class_index, x_center, y_center, w, h]
+
+      bboxes_temp = bboxes.copy()  # 深拷贝，防止修改原数据
+      if bboxes.size > 0:  # Normalized xywh to pixel xyxy format
+        # 计算标注数据在马赛克图像中的坐标(绝对坐标)
+        bboxes_temp[:, 1] = w * (bboxes[:, 1] - bboxes[:, 3] / 2) + padw  # xmin
+        bboxes_temp[:, 2] = h * (bboxes[:, 2] - bboxes[:, 4] / 2) + padh  # ymin
+        bboxes_temp[:, 3] = w * (bboxes[:, 1] + bboxes[:, 3] / 2) + padw  # xmax
+        bboxes_temp[:, 4] = h * (bboxes[:, 2] + bboxes[:, 4] / 2) + padh  # ymax
+      bboxes_result.append(bboxes_temp)
+
+      #添加类别信息
+      labels_result.append(labels)
+
+    return img_result, labels_result, bboxes_result
