@@ -142,6 +142,8 @@ class opts(object):
                                   'from CornerNet')
     self.parser.add_argument('--small', action = 'store_true',
                              help='small object augmentation.')
+    self.parser.add_argument('--mosaic', action='store_true',
+                             help='mosaic object augmentation.')
 
     # multi_pose
     self.parser.add_argument('--aug_rot', type=float, default=0, 
