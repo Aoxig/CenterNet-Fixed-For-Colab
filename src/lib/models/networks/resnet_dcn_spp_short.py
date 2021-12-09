@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 from .DCNv2.dcn_v2 import DCN
 import torch.utils.model_zoo as model_zoo
-from .module import ShortcutConv2d
+from .module import ShortcutConv2d, ChannelAttention, SpatialAttention
 from .SPP_module import SPP, BottleneckCSP, Conv
 
 BN_MOMENTUM = 0.1
@@ -145,11 +145,18 @@ class PoseResNet(nn.Module):
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
         self.relu = nn.ReLU(inplace=True)
+
+        self.ca1 = ChannelAttention(self.inplanes)
+        self.sa1 = SpatialAttention()
+
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+
+        self.ca2 = ChannelAttention(self.inplanes)
+        self.sa2 = SpatialAttention()
 
         # neck
         self.spp = nn.Sequential(
@@ -333,12 +340,19 @@ class PoseResNet(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
+
+        x= self.ca1(x) * x
+        x = self.sa1(x) * x
+
         x = self.maxpool(x)
 
         y1 = self.layer1(x)
         y2 = self.layer2(y1)
         y3 = self.layer3(y2)
         y4 = self.layer4(y3)
+
+        x = self.ca2(x) * x
+        x = self.sa2(x) * x
 
         y4 = self.spp(y4)
 

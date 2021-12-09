@@ -27,7 +27,10 @@ class PascalVOC(data.Dataset):
     self.annot_path = os.path.join(
       self.data_dir, 'annotations',
       'pascal_{}.json').format(_ann_name[split])
-    self.max_objs = 50
+    if self.opt.mosaic:
+        self.max_objs = 200
+    else:
+        self.max_objs = 50
     self.class_name = ['__background__', "aeroplane", "bicycle", "bird", "boat",
      "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog",
      "horse", "motorbike", "person", "pottedplant", "sheep", "sofa",

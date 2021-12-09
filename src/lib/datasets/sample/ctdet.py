@@ -29,10 +29,11 @@ class CTDetDataset(data.Dataset):
 
   def __getitem__(self, index):
     if self.opt.mosaic and random.randint(2):
-      img, labels, bboxes = self.load_mosaic(self, index)
+      img, labels, bboxes = self.load_mosaic(index)
     else:
-      img, labels, bboxes = self.load_image(self, index)
+      img, labels, bboxes = self.load_image(index)
 
+    img_id = self.images[index]
     height, width = img.shape[0], img.shape[1]
     c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
     if self.opt.keep_res:

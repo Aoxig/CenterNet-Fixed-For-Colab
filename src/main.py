@@ -5,16 +5,16 @@ from __future__ import print_function
 import _init_paths
 
 import os
+import time
 
 from config import cfg
 from config import update_config
 
 import torch
 import torch.utils.data
+from torch.utils.tensorboard import SummaryWriter
 from config import cfg
 from datasets.dataset_factory import get_dataset
-from fp16_utils.fp16_optimizer import FP16_Optimizer
-from fp16_utils.fp16util import network_to_half
 from logger import Logger
 from models.model import create_model, load_model, save_model
 from opts import opts
@@ -34,23 +34,8 @@ def main(opt):
   opt.device = torch.device('cuda' if opt.gpus[0] >= 0 else 'cpu')
   
   print('Creating model...')
-  if opt.arch == 'hr' :
-    update_config(cfg, opt)
   model = create_model(opt.arch, opt.heads, opt.head_conv, cfg)
   optimizer = torch.optim.Adam(model.parameters(), opt.lr)
-
-  #hrnet + 混合精度运算
-  if opt.arch == 'hr' :
-    update_config(cfg, opt)
-    torch.backends.cudnn.enabled = True
-    torch.cuda.set_device(opt.gpus[0])
-    model = model.cuda(opt.gpus[0])
-    model = network_to_half(model)
-    optimizer = FP16_Optimizer(
-      optimizer,
-      static_loss_scale=cfg.FP16.STATIC_LOSS_SCALE,
-      dynamic_loss_scale=cfg.FP16.DYNAMIC_LOSS_SCALE
-    )
 
   start_epoch = 0
   if opt.load_model != '':
@@ -86,9 +71,17 @@ def main(opt):
 
   print('Starting training...')
   best = 1e10
+
+  #可视化
+  print('Use tensorboard')
+  c_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+  log_path = os.path.join('../log/', opt.exp_id, c_time)
+  os.makedirs(log_path, exist_ok=True)
+  writer = SummaryWriter(log_path)
+
   for epoch in range(start_epoch + 1, opt.num_epochs + 1):
     mark = epoch if opt.save_all else 'last'
-    log_dict_train, _ = trainer.train(epoch, train_loader)
+    log_dict_train, _ = trainer.train(epoch, train_loader, writer)
     logger.write('epoch: {} |'.format(epoch))
     for k, v in log_dict_train.items():
       logger.scalar_summary('train_{}'.format(k), v, epoch)
