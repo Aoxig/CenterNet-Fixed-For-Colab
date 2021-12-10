@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 from .DCNv2.dcn_v2 import DCN
 import torch.utils.model_zoo as model_zoo
-from .SPP_module import Conv, SPP, BottleneckCSP
+from .module import Conv, SPP, BottleneckCSP
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)

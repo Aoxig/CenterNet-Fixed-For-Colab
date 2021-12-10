@@ -17,8 +17,7 @@ import torch
 import torch.nn as nn
 from .DCNv2.dcn_v2 import DCN
 import torch.utils.model_zoo as model_zoo
-from .module import ShortcutConv2d, ChannelAttention, SpatialAttention
-from .SPP_module import SPP, BottleneckCSP, Conv
+from .module import ShortcutConv2d, ChannelAttention, SpatialAttention, SPP, BottleneckCSP, Conv
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
