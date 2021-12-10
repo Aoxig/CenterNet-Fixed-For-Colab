@@ -28,7 +28,7 @@ class CTDetDataset(data.Dataset):
     return border // i
 
   def __getitem__(self, index):
-    if self.opt.mosaic and random.randint(2):
+    if self.opt.mosaic and random.randint(0,1):
       img, labels, bboxes = self.load_mosaic(index)
     else:
       img, labels, bboxes = self.load_image(index)
@@ -220,10 +220,10 @@ class CTDetDataset(data.Dataset):
     labels_result = []
     bboxes_result = []
     xc, yc = [int(random.uniform(s * 0.5, s * 1.5)) for _ in range(2)]  # mosaic center x, y
-    indices = [index] + [random.randint(0, len(self.labels) - 1) for _ in range(3)]  # 3 additional image indices
+    indices = [index] + [random.randint(0, len(self.images) - 1) for _ in range(3)]  # 3 additional image indices
     #遍历进行拼接
     for i, index in enumerate(indices):
-      img, labels, bboxes = self.load_image(self, index)
+      img, labels, bboxes = self.load_image(index)
       h, w = img.shape[0], img.shape[1]
       if i == 0:  # top left
         # 创建马赛克图像
@@ -260,13 +260,19 @@ class CTDetDataset(data.Dataset):
       bboxes_temp = bboxes.copy()  # 深拷贝，防止修改原数据
       if bboxes.size > 0:  # Normalized xywh to pixel xyxy format
         # 计算标注数据在马赛克图像中的坐标(绝对坐标)
-        bboxes_temp[:, 1] = w * (bboxes[:, 1] - bboxes[:, 3] / 2) + padw  # xmin
-        bboxes_temp[:, 2] = h * (bboxes[:, 2] - bboxes[:, 4] / 2) + padh  # ymin
-        bboxes_temp[:, 3] = w * (bboxes[:, 1] + bboxes[:, 3] / 2) + padw  # xmax
-        bboxes_temp[:, 4] = h * (bboxes[:, 2] + bboxes[:, 4] / 2) + padh  # ymax
+        bboxes_temp[:, 0] = w * (bboxes[:, 0] - bboxes[:, 2] / 2) + padw  # xmin
+        bboxes_temp[:, 1] = h * (bboxes[:, 1] - bboxes[:, 3] / 2) + padh  # ymin
+        bboxes_temp[:, 2] = w * (bboxes[:, 0] + bboxes[:, 2] / 2) + padw  # xmax
+        bboxes_temp[:, 3] = h * (bboxes[:, 1] + bboxes[:, 3] / 2) + padh  # ymax
       bboxes_result.append(bboxes_temp)
 
       #添加类别信息
       labels_result.append(labels)
+
+    if len(labels_result):
+      labels_result = np.concatenate(labels_result, 0)
+
+    if len(bboxes_result):
+      bboxes_result = np.concatenate(bboxes_result, 0)
 
     return img_result, labels_result, bboxes_result
