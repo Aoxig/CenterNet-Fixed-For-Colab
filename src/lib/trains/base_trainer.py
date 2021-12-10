@@ -74,7 +74,7 @@ class BaseTrainer(object):
         self.optimizer.step()
         # tfboard可视化
         if iter_id % 10 == 0:
-          writer.add_scalar('loss', loss, iter_id + epoch * opt.self.num_epochs)
+          writer.add_scalar('loss', loss, iter_id + epoch * self.opt.num_epochs)
 
       batch_time.update(time.time() - end)
       end = time.time()

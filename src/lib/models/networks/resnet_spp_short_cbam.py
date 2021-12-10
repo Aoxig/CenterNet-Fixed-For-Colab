@@ -351,8 +351,8 @@ class PoseResNet(nn.Module):
         y3 = self.layer3(y2)
         y4 = self.layer4(y3)
 
-        x = self.ca2(x) * x
-        x = self.sa2(x) * x
+        y4 = self.ca2(x) * y4
+        y4 = self.sa2(x) * y4
 
         y4 = self.spp(y4)
 
