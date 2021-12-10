@@ -27,7 +27,7 @@ class PascalVOC(data.Dataset):
     self.annot_path = os.path.join(
       self.data_dir, 'annotations',
       'pascal_{}.json').format(_ann_name[split])
-    if self.opt.mosaic:
+    if opt.mosaic:
         self.max_objs = 200
     else:
         self.max_objs = 50

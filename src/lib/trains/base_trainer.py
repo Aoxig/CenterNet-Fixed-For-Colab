@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import time
 import torch
-import torch.cuda.amp.autocast as autocast
 from progress.bar import Bar
 from models.data_parallel import DataParallel
 from utils.utils import AverageMeter
@@ -120,5 +119,5 @@ class BaseTrainer(object):
   def val(self, epoch, data_loader):
     return self.run_epoch('val', epoch, data_loader)
 
-  def train(self, epoch, data_loader, ):
-    return self.run_epoch('train', epoch, data_loader)
+  def train(self, epoch, data_loader, writer):
+    return self.run_epoch('train', epoch, data_loader, writer)
