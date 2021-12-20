@@ -271,6 +271,7 @@ class CTDetDataset(data.Dataset):
 
     if len(labels_result):
       labels_result = np.concatenate(labels_result, 0)
+      np.clip(labels_result[:, 1:], 0, 2 * s, out=labels_result[:, 1:])
 
     if len(bboxes_result):
       bboxes_result = np.concatenate(bboxes_result, 0)

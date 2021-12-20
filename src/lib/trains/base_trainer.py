@@ -41,7 +41,7 @@ class BaseTrainer(object):
         if isinstance(v, torch.Tensor):
           state[k] = v.to(device=device, non_blocking=True)
 
-  def run_epoch(self, phase, epoch, data_loader, writer):
+  def run_epoch(self, phase, epoch, data_loader, writer=None):
     model_with_loss = self.model_with_loss
     if phase == 'train':
       model_with_loss.train()
