@@ -158,10 +158,17 @@ class PoseResNet(nn.Module):
         self.sa2 = SpatialAttention()
 
         # neck
+        # self.spp = nn.Sequential(
+        #     Conv(512, 256, k=1),
+        #     SPP(),
+        #     BottleneckCSP(256 * 4, 512, n=1, shortcut=False)
+        # )
+
+        #for 101
         self.spp = nn.Sequential(
-            Conv(512, 256, k=1),
+            Conv(2048, 1024, k=1),
             SPP(),
-            BottleneckCSP(256 * 4, 512, n=1, shortcut=False)
+            BottleneckCSP(1024 * 4, 2048, n=1, shortcut=False)
         )
 
         # used for deconv layers
@@ -182,6 +189,10 @@ class PoseResNet(nn.Module):
         self.deconv_layers = nn.Sequential(*deconv_layers)
 
         inplanes = (64, 128, 256, 512)
+        planes = (256, 128, 64)
+
+        #for 101
+        inplanes = (256, 512, 1024, 2048)
         planes = (256, 128, 64)
         shortcut_num = min(len(inplanes) - 1, len(planes))
         shortcut_cfg = (1, 2, 3)
@@ -350,8 +361,8 @@ class PoseResNet(nn.Module):
         y3 = self.layer3(y2)
         y4 = self.layer4(y3)
 
-        y4 = self.ca2(x) * y4
-        y4 = self.sa2(x) * y4
+        y4 = self.ca2(y4) * y4
+        y4 = self.sa2(y4) * y4
 
         y4 = self.spp(y4)
 

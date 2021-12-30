@@ -9,8 +9,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import csv
-import pandas as pd
 from datasets.imdb import imdb
 import datasets.ds_utils as ds_utils
 import xml.etree.ElementTree as ET
@@ -212,6 +210,8 @@ class pascal_voc(imdb):
       with open(filename, 'wt') as f:
         for im_ind, index in enumerate(self.image_index):
           dets = np.array(all_boxes[cls_ind][im_ind])
+          print(cls_ind)
+          print(im_ind)
           if len(dets) == 0:
             continue
           # the VOCdevkit expects 1-based indices
@@ -235,7 +235,6 @@ class pascal_voc(imdb):
       self._image_set + '.txt')
     cachedir = os.path.join(self._devkit_path, 'annotations_cache')
     aps = []
-    clsList = []
     # The PASCAL VOC metric changed in 2010
     use_07_metric = True if int(self._year) < 2010 else False
     print('VOC07 metric? ' + ('Yes' if use_07_metric else 'No'))
@@ -249,15 +248,12 @@ class pascal_voc(imdb):
         filename, annopath, imagesetfile, cls, cachedir, ovthresh=0.5,
         use_07_metric=use_07_metric, use_diff=self.config['use_diff'])
       aps += [ap]
-      cls += [cls]
       print(('AP for {} = {:.4f}'.format(cls, ap)))
       if output_dir is not None:
         with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
           pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
     print(('Mean AP = {:.4f}'.format(np.mean(aps))))
     print('~~~~~~~~')
-    dataframe = pd.DataFrame({'cls' : clsList, 'AP' : aps, 'mAP' : np.mean(aps)})
-    dataframe.to_csv("result.csv", index = False, sep = ',')
     '''
     print('Results:')
     for ap in aps:

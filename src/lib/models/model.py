@@ -11,6 +11,7 @@ from .networks.msra_resnet import get_pose_net
 from .networks.dlav0 import get_pose_net as get_dlav0
 from .networks.pose_dla_dcn import get_pose_net as get_dla_dcn
 from .networks.resnet_dcn import get_pose_net as get_pose_net_dcn
+from .networks.resnet_spp_short_cbam import get_pose_net as get_pose_net_dcn_final
 from .networks.large_hourglass import get_large_hourglass_net
 
 _model_factory = {
@@ -18,6 +19,7 @@ _model_factory = {
   'dlav0': get_dlav0, # default DLAup
   'dla': get_dla_dcn,
   'resdcn': get_pose_net_dcn,
+  'resfinal': get_pose_net_dcn_final,
   'hourglass': get_large_hourglass_net
 }
 

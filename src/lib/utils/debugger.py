@@ -47,6 +47,8 @@ class Debugger(object):
       self.names = pascal_class_name
     elif dataset == 'vedai':
       self.names = vedai_class_name
+    elif dataset == 'nwpu':
+      self.names = nwpu_class_name
     elif dataset == 'gta':
       self.names = gta_class_name
       self.focal_length = 935.3074360871937
@@ -461,6 +463,11 @@ coco_class_name = [
 vedai_class_name = [
     "car", "truck", "pickup", "tractor", "camping car",
     "boat","motorcycle", "bus", "van", "other", "small", "large"
+]
+
+nwpu_class_name = [
+    'airplane', 'ship', 'storage tank', 'baseball diamond', 'tennis court',
+    'basketball court', 'ground track field', 'harbor', 'bridge', 'vehicle'
 ]
 
 color_list = np.array(

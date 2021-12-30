@@ -269,6 +269,7 @@ class CTDetDataset(data.Dataset):
       #添加类别信息
       labels_result.append(labels)
 
+
     if len(labels_result):
       labels_result = np.concatenate(labels_result, 0)
       np.clip(labels_result[:, 1:], 0, 2 * s, out=labels_result[:, 1:])

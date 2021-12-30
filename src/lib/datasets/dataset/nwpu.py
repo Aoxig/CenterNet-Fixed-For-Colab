@@ -11,8 +11,8 @@ import os
 
 import torch.utils.data as data
 
-class PascalVOC(data.Dataset):
-  num_classes = 20
+class NWPU(data.Dataset):
+  num_classes = 10
   default_resolution = [384, 384]
   mean = np.array([0.485, 0.456, 0.406],
                    dtype=np.float32).reshape(1, 1, 3)
@@ -20,22 +20,20 @@ class PascalVOC(data.Dataset):
                    dtype=np.float32).reshape(1, 1, 3)
 
   def __init__(self, opt, split):
-    super(PascalVOC, self).__init__()
-    self.data_dir = os.path.join(opt.data_dir, 'voc')
+    super(NWPU, self).__init__()
+    self.data_dir = os.path.join(opt.data_dir, 'NWPU')
     self.img_dir = os.path.join(self.data_dir, 'images')
-    _ann_name = {'train': 'trainval0712', 'val': 'test2007'}
+    _ann_name = {'train': 'train', 'val': 'test'}
     self.annot_path = os.path.join(
       self.data_dir, 'annotations',
-      'pascal_{}.json').format(_ann_name[split])
+      '{}.json').format(_ann_name[split])
     if opt.mosaic:
         self.max_objs = 200
     else:
         self.max_objs = 50
-    self.class_name = ['__background__', "aeroplane", "bicycle", "bird", "boat",
-     "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog",
-     "horse", "motorbike", "person", "pottedplant", "sheep", "sofa",
-     "train", "tvmonitor"]
-    self._valid_ids = np.arange(1, 21, dtype=np.int32)
+    self.class_name = ['__background__', 'airplane', 'ship', 'storage tank', 'baseball diamond', 'tennis court',
+ 'basketball court', 'ground track field', 'harbor', 'bridge', 'vehicle']
+    self._valid_ids = np.arange(1, 11, dtype=np.int32)
     self.cat_ids = {v: i for i, v in enumerate(self._valid_ids)}
     self._data_rng = np.random.RandomState(123)
     self._eig_val = np.array([0.2141788, 0.01817699, 0.00341571],

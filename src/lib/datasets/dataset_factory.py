@@ -12,6 +12,7 @@ from .dataset.pascal import PascalVOC
 from .dataset.kitti import KITTI
 from .dataset.coco_hp import COCOHP
 from .dataset.vedai import VEDAI
+from .dataset.nwpu import NWPU
 
 
 dataset_factory = {
@@ -19,7 +20,8 @@ dataset_factory = {
   'pascal': PascalVOC,
   'kitti': KITTI,
   'coco_hp': COCOHP,
-  'vedai': VEDAI
+  'vedai': VEDAI,
+  'nwpu': NWPU
 }
 
 _sample_factory = {
