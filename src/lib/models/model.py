@@ -11,7 +11,7 @@ from .networks.msra_resnet import get_pose_net
 from .networks.dlav0 import get_pose_net as get_dlav0
 from .networks.pose_dla_dcn import get_pose_net as get_dla_dcn
 from .networks.resnet_dcn import get_pose_net as get_pose_net_dcn
-from .networks.resnet_spp_short_cbam import get_pose_net as get_pose_net_dcn_final
+from .networks.resnet_short_cbam import get_pose_net as get_pose_net_dcn_final
 from .networks.large_hourglass import get_large_hourglass_net
 
 _model_factory = {
@@ -27,10 +27,7 @@ def create_model(arch, heads, head_conv, *args):
   num_layers = int(arch[arch.find('_') + 1:]) if '_' in arch else 0
   arch = arch[:arch.find('_')] if '_' in arch else arch
   get_model = _model_factory[arch]
-  if arch == 'hr' :
-    model = get_model(heads = heads, cfg = args[0])
-  else:
-    model = get_model(num_layers=num_layers, heads=heads, head_conv=head_conv)
+  model = get_model(num_layers=num_layers, heads=heads, head_conv=head_conv)
   return model
 
 

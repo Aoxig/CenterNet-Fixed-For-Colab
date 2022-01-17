@@ -9,8 +9,9 @@ import torch
 from torch.autograd import Function
 from torchvision import models
 import sys
-
-from src.lib.models.model import create_model
+sys.path.insert(0,'../')
+from src.lib.models.model import create_model,load_model
+from src.lib.models.decode import ctdet_decode
 
 
 def get_last_conv(m):
@@ -75,6 +76,7 @@ class Grad_Cam:
         input = preprocessed_img.requires_grad_(True)
         return input
 
+
     def __call__(self, img, idx=None):
         """
         :param inputs: [w,h,c]
@@ -87,7 +89,10 @@ class Grad_Cam:
         if self.use_cuda:
             inputs = inputs.cuda()
             self.model = self.model.cuda()
-        output = self.model(inputs)
+        output = self.model(inputs)[-1]
+        output = ctdet_decode(
+            output['hm'], output['wh'], output['reg'],
+            cat_spec_wh=False, K=100)
         if idx is None:
             idx = np.argmax(output.detach().cpu().numpy())  # predict id
         target = output[0][idx]
@@ -104,16 +109,15 @@ class Grad_Cam:
 
 
 if __name__ == '__main__':
-    arch = sys.argv[1]
-    model_path = sys.argv[2]
-    img_path = sys.argv[3]
+    img_path = "test.jpg"
     heads = {'hm': 20,
-             'wh': 2 }
+             'wh': 2,
+             'reg': 2 }
     use_cuda = torch.cuda.is_available()
     # load model
-    checkpoint = torch.load(model_path)
-    model = create_model(arch, heads, 64)
-    model.load_state_dict(checkpoint['state_dict'])
+    model = create_model("resdcn_18", heads, 64)
+    model = load_model(model, "../exp/ctdet/res_unet_all/model_last.pth")
+    model = model.to(torch.device('cuda'))
     model.eval()
 
     # print(model.state_dict)
