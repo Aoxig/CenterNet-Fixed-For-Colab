@@ -216,7 +216,7 @@ class CTDetDataset(data.Dataset):
     return img, labels, bboxes
 
   def load_mosaic(self, index):
-    s = 512
+    s = 480
     labels_result = []
     bboxes_result = []
     xc, yc = [int(random.uniform(s * 0.5, s * 1.5)) for _ in range(2)]  # mosaic center x, y
@@ -265,16 +265,15 @@ class CTDetDataset(data.Dataset):
         bboxes_temp[:, 2] = w * (bboxes[:, 0] + bboxes[:, 2] / 2) + padw  # xmax
         bboxes_temp[:, 3] = h * (bboxes[:, 1] + bboxes[:, 3] / 2) + padh  # ymax
       bboxes_result.append(bboxes_temp)
-
+      labels_temp = labels.copy()
       #添加类别信息
-      labels_result.append(labels)
-
+      labels_result.append(labels_temp)
 
     if len(labels_result):
-      labels_result = np.concatenate(labels_result, 0)
-      np.clip(labels_result[:, 1:], 0, 2 * s, out=labels_result[:, 1:])
+        labels_result = np.concatenate(labels_result, 0)
 
     if len(bboxes_result):
       bboxes_result = np.concatenate(bboxes_result, 0)
+      np.clip(bboxes_result[:, 1:], 0, 2 * s, out=labels_result[:, 1:])
 
     return img_result, labels_result, bboxes_result

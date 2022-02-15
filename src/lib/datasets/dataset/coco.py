@@ -35,7 +35,10 @@ class COCO(data.Dataset):
         self.annot_path = os.path.join(
           self.data_dir, 'annotations', 
           'instances_{}2017.json').format(split)
-    self.max_objs = 128
+    if opt.mosaic:
+      self.max_objs = 512
+    else:
+      self.max_objs = 128
     self.class_name = [
       '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
       'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant',

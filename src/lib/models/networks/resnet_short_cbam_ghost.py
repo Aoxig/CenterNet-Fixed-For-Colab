@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 from .DCNv2.dcn_v2 import DCN
 import torch.utils.model_zoo as model_zoo
-from .module import ShortcutConv2d, ChannelAttention, SpatialAttention, SPP, BottleneckCSP, Conv
+from .module import ShortcutConv2d, ChannelAttention, SpatialAttention, GhostModule
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -42,10 +42,10 @@ class BasicBlock(nn.Module):
 
     def __init__(self, inplanes, planes, stride=1, downsample=None):
         super(BasicBlock, self).__init__()
-        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.conv1 = GhostModule(inplanes, planes, kernel_size=3, stride=stride)
         self.bn1 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
+        self.conv2 = GhostModule(inplanes, planes, kernel_size=3, stride=stride)
         self.bn2 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
         self.downsample = downsample
         self.stride = stride
